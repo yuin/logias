@@ -7,7 +7,6 @@ import (
 	"github.com/yuin/gluamapper"
 	"github.com/yuin/gopher-lua"
 	"io/ioutil"
-	"net/mail"
 	"net/smtp"
 	"path/filepath"
 	"sort"
@@ -515,15 +514,15 @@ func luaMail(L *lua.LState) int {
 	for k, v := range map[string]string{
 		"From":                      from,
 		"To":                        strings.Join(tos, ", "),
-		"Subject":                   strings.Trim((&mail.Address{subject, ""}).String(), " <>"),
 		"MIME-Version":              "1.0",
 		"Content-Type":              "text/plain; charset=\"utf-8\"",
 		"Content-Transfer-Encoding": "base64",
 	} {
 		message = append(message, fmt.Sprintf("%s: %s\r\n", k, v))
 	}
+	message = append(message, encodeSubject(subject))
 	message = append(message, "\r\n")
-	message = append(message, base64.StdEncoding.EncodeToString([]byte(body)))
+	message = append(message, add76crlf(base64.StdEncoding.EncodeToString([]byte(body))))
 	if err := smtp.SendMail(host, auth, from, tos, []byte(strings.Join(message, ""))); err != nil {
 		L.Push(lua.LFalse)
 		L.Push(lua.LString(err.Error()))
