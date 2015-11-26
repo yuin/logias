@@ -46,7 +46,8 @@ var luaConstants = `
 	  end
 
 	  function notify(tbl)
-	    return {type="notify", level=tostring(tbl.level), code=tostring(tbl.code), message=tostring(tbl.message)}
+	    local msg = tbl.message ~= nil and tostring(tbl.message) or ""
+	    return {type="notify", level=tostring(tbl.level), code=tostring(tbl.code), message=msg}
 	  end
 `
 
