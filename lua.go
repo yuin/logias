@@ -86,6 +86,7 @@ var luaConstants = `
 			    state[name].current_state = th_state
 				state[name].values = state[name.."_values"]
 				state[name].last_message = message
+				state[name].last_value = state[name.."_values"]:at(-1)
 			  end},
               notify{level=level, code=attr.notification_code, message=message}
 		    })
@@ -103,7 +104,8 @@ var luaConstants = `
 		  		values = nqueue.new(), 
 		  		current_state = "NORMAL", 
 		  		previous_state = "NORMAL", 
-		  		last_message = ""
+		  		last_message = "",
+				last_value = 0,
 		  	}
 		    end
 		    return ret

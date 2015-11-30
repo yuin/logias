@@ -268,6 +268,7 @@ Service stores following informations in ``state[attr_name]`` :
 
 - name(string): A human-readable name.
 - values(nqueue) : A series of attributes values. A last item is newer.
+- last_value(number) : A latest attribute value.
 - current_state(string)
 - previous_state(string)
 - last_message(string)
