@@ -49,6 +49,70 @@ var luaConstants = `
 	    local msg = tbl.message ~= nil and tostring(tbl.message) or ""
 	    return {type="notify", level=tostring(tbl.level), code=tostring(tbl.code), message=msg}
 	  end
+
+	  function service(tbl)
+        local fg = {}
+		for name, attr in pairs(tbl.attributes) do
+		  for th_state, th_config in pairs(attr.thresholds) do
+		    local level = th_state
+			if th_state == "NORMAL" then
+			  level = "INFO"
+			end
+		    local parts = {}
+            for i in string.gmatch(th_config, "%S+") do
+			  table.insert(parts, i)
+            end
+			local op = parts[1]
+			local val = parts[2]
+			local count = 1
+			if #parts > 2 then
+			  count = tonumber(parts[3])
+			end
+			local d = {}
+			for k, v in pairs(attr) do d[k] = v; end
+			d["name"] = name
+			d["level"] = level
+			d["state"] = state
+			d["op"] = op
+			d["val"] = val
+			d["count"] = count
+			local message = template(tbl.message or "{{.name_for_human}} notification", d)
+			local recover = level == "INFO"
+		    table.insert(fg, {
+              action {function(state, line, obj) obj.attribute_name = name end },
+			  test{threshold({name=name, state=name.."_values", op=op, val=val, count=count, recover=recover})},
+              action {function(state, line, obj) 
+			    state[name].previous_state = state[name].current_state
+			    state[name].current_state = th_state
+				state[name].values = state[name.."_values"]
+				state[name].last_message = message
+			  end},
+              notify{level=level, code=attr.notification_code, message=message}
+		    })
+		  end
+	    end
+
+	    return {
+		  type = tbl.type or target.CMD,
+		  interval = tbl.interval or 60,
+		  initial_state = function()
+		    local ret = {}
+		    for name, attr in pairs(tbl.attributes) do
+		      ret[name] = {
+		  		name = attr.name_for_human,
+		  		values = nqueue.new(), 
+		  		current_state = "NORMAL", 
+		  		previous_state = "NORMAL", 
+		  		last_message = ""
+		  	}
+		    end
+		    return ret
+		  end,
+		  fn = tbl.fn,
+		  parser = tbl.parser or parseltsv,
+		  filter_groups = fg,
+		}
+	  end
 `
 
 func callLFunc0(L *lua.LState, fn lua.LValue, args ...lua.LValue) {

@@ -35,7 +35,9 @@ func mustNewThread(path string, s *shared) *thread {
 }
 
 func (th *thread) beforeLoadConfig() {
-	th.L.DoString(luaConstants)
+	if err := th.L.DoString(luaConstants); err != nil {
+		panic(err)
+	}
 	registerNqueueType(th.L)
 	th.L.SetFuncs(th.L.Get(lua.GlobalsIndex).(*lua.LTable), luaFunctions, th.luaUd)
 }
