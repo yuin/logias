@@ -101,7 +101,7 @@ func (wk *worker) processFile() {
 		return
 	}
 
-	const maxread = 100
+	const maxread = 4096
 	for i := 0; i < maxread; i++ {
 		line, err := readFileLine(fp)
 		iseof := err == io.EOF
