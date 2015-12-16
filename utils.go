@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/base64"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -176,4 +177,44 @@ func encodeSubject(subject string) string {
 		buffer.WriteString("?=\r\n")
 	}
 	return buffer.String()
+}
+
+func readFileLine(fp *os.File) (string, error) {
+	var result []byte
+	var err error
+	var n int
+	where, err := fp.Seek(0, 1)
+	totalread := int64(0)
+	if err != nil {
+		return "", err
+	}
+	for {
+		buf := make([]byte, 4096, 4096)
+		n, err = fp.Read(buf)
+		if err == io.EOF {
+			result = append(result, buf[0:n]...)
+			totalread += int64(n)
+			break
+		}
+
+		end := -1
+		for i := 0; i < n; i++ {
+			if buf[i] == '\n' {
+				end = i
+				break
+			}
+		}
+
+		if end > -1 {
+			result = append(result, buf[0:end+1]...)
+			totalread += int64(end + 1)
+			break
+		}
+		result = append(result, buf...)
+		totalread += int64(n)
+	}
+	if _, err1 := fp.Seek(where+totalread, 0); err1 != nil {
+		return string(result), err1
+	}
+	return string(result), err
 }

@@ -85,38 +85,42 @@ func (wk *worker) processFile() {
 	header = strings.Trim(header, "\n")
 	pos := fd.position
 
-	if header != fd.header {
+	fi, err := fp.Stat()
+	if err != nil {
+		wk.systemError(logLevelError.String(), "can not stat %s: %s", wk.target.Path, err.Error())
+		return
+	}
+
+	if header != fd.header || pos > fi.Size() {
 		wk.shared.logger.info("%s was truncated", wk.target.Path)
 		pos = 0
 	}
+
 	if _, err := fp.Seek(pos, 0); err != nil {
 		wk.systemError(logLevelError.String(), "can not seek %s: %s", wk.target.Path, err.Error())
 		return
 	}
 
-	for {
-		where, err := fp.Seek(0, 1)
-		if err != nil {
-			wk.systemError(logLevelError.String(), "can not seek %s: %s", wk.target.Path, err.Error())
-			return
-		}
-		reader := bufio.NewReaderSize(fp, 4096)
-		line, err := reader.ReadString('\n')
-		if err == io.EOF {
-			fp.Seek(where, 0)
-			break
-		}
-		if err != nil {
+	const maxread = 100
+	for i := 0; i < maxread; i++ {
+		line, err := readFileLine(fp)
+		iseof := err == io.EOF
+		if err != nil && !iseof {
 			wk.systemError(logLevelError.String(), "can not read %s: %s", wk.target.Path, err.Error())
 			return
 		}
 		line = strings.Trim(line, "\n")
-		obj, ok := wk.applyParser(line)
-		if !ok {
-			return
+		if len(line) > 0 {
+			obj, ok := wk.applyParser(line)
+			if !ok {
+				break
+			}
+			for _, group := range wk.target.FilterGroups {
+				wk.applyFilterGroup(line, group, obj)
+			}
 		}
-		for _, group := range wk.target.FilterGroups {
-			wk.applyFilterGroup(line, group, obj)
+		if iseof {
+			break
 		}
 	}
 
