@@ -49,8 +49,8 @@ if [ ${TOTAL_SWAP} -eq 0 ]; then
 fi
 
 
-TOP=`top -b -n1`
-CPU_USAGE=`echo "${TOP}" | sed -e s/%// | sed -e s/us,//  | grep -E '^Cpu' | awk '{print int($2)}'`
+TOP=`top -b -n2`
+CPU_USAGE=`echo "${TOP}" | grep '^Cpu' | tail -n 1 | sed -e s/%// | sed -e s/us,// | awk '{print int($2)}'`
 LOAD_AVERAGES=(`echo "${TOP}" | grep 'load average' | awk '{gsub(/,/, "")}{i=NF-2;j=NF-1; print $i " " $j " " $NF}'`)
 
 echo -n "CPU_USAGE:${CPU_USAGE}"
